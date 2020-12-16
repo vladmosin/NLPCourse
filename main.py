@@ -5,6 +5,14 @@ from pyowm.utils import timestamps
 bot = telebot.TeleBot('1444765218:AAE0ilY-PZV9aInYCCnfr3tgQaa1EWqiLKI')
 
 
+def is_greeting(text):
+    return 'привет' in text.lower()
+
+
+def is_goodbye(text):
+    return 'пока' in text.lower()
+
+
 class State:
     def __init__(self):
         self.cities = set()
@@ -76,7 +84,11 @@ class State:
 
     def greet(self):
         self.greeting = True
-        return 'Здравствуйте!'
+        phrases = ['Здравствуйте!', 'Я умею предсказывать погоду.',
+                   'Доступны два города: Москва и СПб', 'Доступны две даты: сегодня, завтра',
+                   'Для завершения общения введите: пока',
+                   'Для возобновления общения введите: привет']
+        return '\n'.join(phrases)
 
     def goodbye(self):
         return 'Всего хорошего!'
@@ -108,8 +120,17 @@ state = State()
 
 @bot.message_handler(content_types=['text'])
 def react(message):
+    text = message.text
     if not state.greeting:
-        bot.send_message(message.from_user.id, state.greet())
+        if is_greeting(text):
+            bot.send_message(message.from_user.id, state.greet())
+
+        return
+
+    if is_goodbye(text):
+        bot.send_message(message.from_user.id, state.goodbye())
+        state.clear()
+        return
 
     text = message.text
     state.parse_text(text)
@@ -119,8 +140,6 @@ def react(message):
 
     if state.is_state_full():
         bot.send_message(message.from_user.id, state.collect_answer())
-        bot.send_message(message.from_user.id, state.goodbye())
-        state.clear()
     else:
         bot.send_message(message.from_user.id, state.get_request())
 
